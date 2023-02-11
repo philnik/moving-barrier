@@ -1,0 +1,333 @@
+
+
+
+* Basic functions
+
+#+name: basic_functions
+#+begin_src lisp :tangle fluidized_bed.lisp
+(ql:quickload "cl-ppcre")
+
+(defun read-file (infile)
+  (with-open-file (instream infile :direction :input :if-does-not-exist nil)
+    (when instream 
+      (let ((string (make-string (file-length instream))))
+        (read-sequence string instream)
+        string))))
+
+(defun write-file (string outfile &key (action-if-exists :error))
+  (check-type action-if-exists (member nil :error :new-version :rename :rename-and-delete 
+					   :overwrite :append :supersede))
+  (with-open-file (outstream outfile
+			     :direction
+			     :output
+			     :if-does-not-exist :create
+			     :if-exists action-if-exists)
+    (write-sequence string outstream)))
+
+(defun range (min max &optional (step 1))
+  (when (<= min max)
+    (cons min (range (+ min step) max step))))
+#+end_src
+
+#+RESULTS: basic_functions
+: RANGE
+
+
+* working with grid
+
+#+name: write_new_sif
+#+begin_src lisp  :tangle
+
+
+
+
+
+* Export files
+
+
+Each file has different porosity
+
+
+#+name: write_new_sif
+#+begin_src lisp  :tangle
+(defun process_string (string &key (fname "fsi1.sif") (porosity "1.0e4 1.0e4"))
+  (setf string1
+	(cl-ppcre:regex-replace-all
+	 "post_file_variable"
+	 string
+	 fname))
+  (setf string2
+	(cl-ppcre:regex-replace-all
+	 "porosity_variable"
+	 string1
+	 porosity))
+  string2
+  )
+
+(defun write_new_sif (infile outfile
+		      &key (fname  "f10.sif")
+			(porosity "0.5e04 0.5e04")
+			)
+  (setf readstring (process_string
+		    (read-file infile)
+		    :fname fname
+		    :porosity porosity
+		    ))
+  (write-file readstring  outfile :action-if-exists :overwrite)
+  )
+
+(defun write-sif-files-to-folder (fname infile sif-folder values fpor)
+  (loop for i in values
+	 do (let ((fname
+		    (concatenate 'string
+				 fname
+				 "_t"
+				 (format nil "~5,'0D" i)
+				 ".vtu"
+				 ))
+		  (outfile
+		    (concatenate 'string
+				 sif-folder
+				 fname
+				 (format nil "~5,'0D" i)
+				 ".sif"
+				 ))
+		  (porosity
+		    (concatenate 'string
+				 (let ((npor (fpor i)))
+				   (format nil "~5,2F ~5,2F" npor npor)
+				   )))
+		  )
+	      (write_new_sif
+	       infile
+	       outfile
+	       :fname fname
+	       :porosity porosity )
+	      ))
+)
+
+#+end_src
+
+#+RESULTS: write_new_sif
+: WRITE-SIF-FILES-TO-FOLDER
+
+
+* Call them
+
+#+name call_them
+#+begin_src lisp :tangle fluidized_bed.lisp
+;(load "fluidized_bed.lisp")
+
+(setf infile (concatenate 'string *ROOT* "moving_barrier.sif"))
+
+(setf SIF-FOLDER (concatenate 'string *ROOT* "/sif/"))
+
+(defmacro fpor1 (i)
+  `(+ 10 (* ,i ,i 0.5))
+  )
+
+(defmacro fpor2 (i)
+  `(+ 10 (* ,i 5))
+  )
+
+(write-sif-files-to-folder "moving_barrier"
+			   infile
+			   SIF-FOLDER
+			   (range 200 300)
+			   'fpor1)
+
+
+
+(mapcar #'(lambda (i)
+	    (list (fpor1 i) (fpor2 i)))
+	    (range 0 200))
+	
+#+end_src
+
+* run the code
+
+
+** One process each time
+
+
+#+name: shell_directories
+#+begin_src shell :async :noweb yes
+root=/home/me/CAE/moving_barrier/
+#+end_src
+
+#+name: one-sif-file
+#+begin_src shell :shebang #!/bin/zsh :async :noweb yes :tangle run-sif-files1.sh
+<<shell_directories>>
+cd "$root/sif/"
+for f in $(ls *.sif);do
+    ElmerSolver $f 
+    rm $f
+done
+#+end_src
+
+
+** More sif files each time
+
+#+name: two-sif-files 
+#+begin_src shell :shebang #!/bin/zsh :noweb yes :async :tangle run-sif-files2.sh
+<<shell_directories>>
+cd "$root/sif/"
+for i j k l
+ in $(ls *.sif);
+do
+    echo $i:$j
+    ElmerSolver $i &
+    ElmerSolver $j &
+    ElmerSolver $k &
+    ElmerSolver $l  
+    rm $i 
+    rm $j
+    rm $k
+    rm $l
+    echo "*****"
+done
+#+end_src
+
+when the first ends, we have to wait for the last to end, otherwise does not move on the loop
+
+It can not be stopped, with ctrl-c
+
+#+RESULTS:
+
+
+* rename results
+
+Elmer outputs: *t_0001.vtu result file for timestep 1.
+Each timestep corresponds to different porosity, so the t_0001.vtu has to be removed.
+
+
+#+begin_src sh :noweb yes :async :shebang #!/bin/bash  :tangle change-names.sh
+<<shell_directories>>
+cd "$root/sif/resu/"
+
+for f in $(ls *.vtu);do
+	 out=$(echo $f | sed -e 's/_t0001.vtu/\.vtu/g')
+	 mv $f  ./delme/$out
+done
+#+end_src
+
+
+
+* check out if it saves time on restart position
+
+
+ I also rename the post file to keep it from overwriting the previous results.
+
+ #+begin_example
+Simulation
+Max Output Level = 5
+Coordinate System = Cartesian
+Coordinate Mapping(3) = 1 2 3
+Simulation Type = Scanning
+Steady State Max Iterations = 10
+Timestep intervals = 10
+Timestep Sizes = .1
+Output Intervals = 1
+Timestepping Method = BDF
+BDF Order = 1
+Solver Input File = case.sif
+! Post File = case.vtu
+Post File = restartcase.vtu
+
+!! Restart
+!! Output File = run.result
+Binary Output = True
+Restart File = run.result
+Restart Position = 2
+Restart Time = .2
+End
+#+end_example
+
+
+* work with uiop
+
+#+begin_src lisp
+(ql:quickload "uiop")
+(ql:quickload "cl-ppcre")
+
+(uiop:chdir #P"/hb/CAE/PorousPipe00/p1/sif/resu/delme")
+
+
+(defun parse_filename_string (i)
+  (if (and i (or (pathnamep i) (stringp i)))
+      (setf val (cl-ppcre:scan-to-strings
+		  "[0-9].[0-9][0-9][0-9]" (namestring i)))
+      )
+  (if (integerp val)
+      val
+	)
+  val
+    )
+
+
+
+
+(defun  my-list ()
+(mapcar #'(lambda (i)
+	    (progn 
+	      (setf p (parse_filename_string i))
+	      (if p 
+		  (list i (parse-integer p)))
+		  ))
+	(uiop:directory-files (uiop:getcwd) "*.vtu")
+	)
+)
+
+
+(defun not-exported-sif-file ()
+(setf mm (mapcar #'(lambda (i) (cadr i)) (my-list)))
+
+(defun maximum (list)
+  (reduce #'max list))
+
+(loop for i in (range 0 (maximum mm))
+      if (not (member i mm))
+	collect i
+      )
+)
+
+(defun export-not-exported ()
+(write-sif-files-to-folder "fluidized_bed"
+			   infile
+			   SIF-FOLDER
+			   (not-exported-sif-file)
+))
+
+;(export-not-exported)
+(not-exported-sif-file)
+
+;(mapcar #'(lambda (i) (if ( (cadr i )) (cadr i ))) (my-list))
+
+#+end_src
+
+#+RESULTS:
+| 23 | 24 | 25 | 39 | 40 | 219 | 220 | 499 | 500 | 737 | 738 | 739 | 741 | 742 | 743 |
+
+
+
+
+
+* convert animation to video
+
+ffmpeg -framerate 1 -pattern_type glob -i '*.png' -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
+
+#+begin_src sh :async :shebang #!/bin/bash  :tangle /hb/CAE/PorousPipe00/p1/to_video.sh
+ffmpeg -framerate 10 -pattern_type glob -i '*.png' -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
+#+end_src
+
+
+
+
+
+#+begin_src lisp :tangle fluidized_bed.lisp
+
+#+begin_src lisp :tangle fluidized_bed.lisp
+
+#+begin_src sh :asyn  :tangle /hb/CAE/PorousPipe00/p1/
+ ps -ax | grep ElmerSolver | awk '{print $1}' | xargs -L1 kill -9
+#+end_src
