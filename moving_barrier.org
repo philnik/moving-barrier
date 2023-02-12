@@ -33,7 +33,7 @@
 : RANGE
 
 
-* working with grid
+* COMMENT working with grid
 
 The grid has the following structure:
 
@@ -56,7 +56,7 @@ End
 We write it as a org-mode table:
 
 
-#+tblname:grid_table
+#+tblname:grid_table0
 | 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
 | 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
 | 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
@@ -70,7 +70,7 @@ We write it as a org-mode table:
 | 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
 
 #+name: write_new_grid
-#+header: :var g=grid_table
+#+header: :var g=grid_table0
 #+begin_src lisp :tangle
 (ql:quickload :alexandria)
 
@@ -100,7 +100,9 @@ We write it as a org-mode table:
 (defun change_columns (garray column_list value)
   (mapcar #'(lambda (j)
 	      (mapcar
-	       #'(lambda (i) (setf (aref garray i j) value)) (range nrows)))
+	       #'(lambda (i) (setf (aref garray i j) value))
+	       (range (cadr (array-dimensions garray)))
+	       ))
 	  column_list))
 
 (defun return_array (garray i)
@@ -117,7 +119,7 @@ We write it as a org-mode table:
 	      )
   str))
 
-Material Structure in 2D
+
 (get_grid_array 4)
 
 #+end_src
@@ -142,20 +144,30 @@ Material Structure in 2D
 
 #+name: write_new_grff
 #+begin_src lisp  :tangle
-(defun process_grd_string (string &key (fname "moving_barrier.grd"))
-  (setf string1
-	(cl-ppcre:regex-replace-all
-	 "structure_variable"
-	 string
-	 fname))
-	 )
 
-(defun write_new_grd (infile outfile pos &key (fname  "moving_barrier.grd"))
-(setf readstring (process_grd_string (read-file infile) :fname fname))
-(write-file readstring  outfile :action-if-exists :overwrite)
+(defun get_grid_array (i)
+(with-output-to-string (str)
+  (show-board str
+	      (return_array garray i)
+	      )
+  str))
+
+(defun replace_grd_string (string pos)
+  (cl-ppcre:regex-replace-all
+   "structure_variable"
+   (get_grid_array pos)
+   string)
+  )
+
+(defun write_grd (infile outfile pos)
+  (write-file
+   (replace_grd_string (read-file infile) pos)
+   outfile :action-if-exists :overwrite)
   )
 
 
+
+#+end_src
 
 
 * Export files
