@@ -1,5 +1,13 @@
 
 
+* Files - directories
+
+#+name: shell_directories
+#+begin_src shell :async :noweb yes
+root=/home/me/CAE/moving_barrier/
+#+end_src
+
+
 
 * Basic functions
 
@@ -182,6 +190,25 @@ We write it as a org-mode table:
 | 2 | 3 | 4 | 5 | 6 | 7 |
 
 
+* build grid files
+
+#+begin_src sh :noweb yes :async :shebang #!/bin/bash  :tangle change-names.sh
+<<shell_directories>>
+cd "$root"
+
+grd="$root/grd/"
+[ ! -d $grd ] && mkdir $grd
+
+for f in $(ls m*.grd);do
+    ElmerGrid 1 2 $f >> /dev/null
+    ElmerGrid 1 4 $f >> /dev/null
+done
+#+end_src
+
+#+RESULTS:
+
+
+
 
 
 * Export files
@@ -292,10 +319,6 @@ Each file has different porosity
 ** One process each time
 
 
-#+name: shell_directories
-#+begin_src shell :async :noweb yes
-root=/home/me/CAE/moving_barrier/
-#+end_src
 
 #+name: one-sif-file
 #+begin_src shell :shebang #!/bin/zsh :async :noweb yes :tangle run-sif-files1.sh
