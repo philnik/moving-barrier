@@ -35,9 +35,125 @@
 
 * working with grid
 
-#+name: write_new_sif
-#+begin_src lisp  :tangle
+The grid has the following structure:
 
+#+begin_example
+Material Structure in 2D
+0  0 1 #1 #2 #3 #4 #5 1 0 0 
+0  0 1 #1 #2 #3 #4 #5 1 0 0
+0  0 1 #1 #2 #3 #4 #5 1 0 0
+0  0 1 #1 #2 #3 #4 #5 1 0 0
+3  1 1 #1 #2 #3 #4 #5 1 1 4   
+3  1 1 #1 #2 #3 #4 #5 1 1 4
+3  1 1 #1 #2 #3 #4 #5 1 1 4
+0  0 1 #1 #2 #3 #4 #5 1 0 0
+0  0 1 #1 #2 #3 #4 #5 1 0 0   
+0  0 1 #1 #2 #3 #4 #5 1 0 0
+0  0 1 #1 #2 #3 #4 #5 1 0 0 
+End
+#+end_example
+
+We write it as a org-mode table:
+
+
+#+tblname:grid_table
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 3 | 1 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 1 | 4 |
+| 3 | 1 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 1 | 4 |
+| 3 | 1 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 1 | 4 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+
+#+name: write_new_grid
+#+header: :var g=grid_table
+#+begin_src lisp :tangle
+(ql:quickload :alexandria)
+
+(defun show-board (output board)
+  (loop for i below (car (array-dimensions board)) do
+        (loop for j below (cadr (array-dimensions board)) do
+          (let ((cell (aref board i j)))
+            (format output "~a " cell)))
+        (format output "~%")))
+
+(defun list-to-2d-array (list)
+  (make-array (list (length list)
+                    (length (first list)))
+              :initial-contents list))
+
+(defun 2d-array-to-list (array)
+  (loop for i below (array-dimension array 0)
+        collect (loop for j below (array-dimension array 1)
+                      collect (aref array i j))))
+
+(defun range (max &key (min 0) (step 1))
+   (loop for n from min below max by step
+      collect n))
+
+(setf garray (list-to-2d-array g))
+
+(defun change_columns (garray column_list value)
+  (mapcar #'(lambda (j)
+	      (mapcar
+	       #'(lambda (i) (setf (aref garray i j) value)) (range nrows)))
+	  column_list))
+
+(defun return_array (garray i)
+  (let ((garray2 (alexandria:copy-array garray)))
+    (change_columns garray2 (remove i (range 8 :min 3)) 1)
+    (change_columns garray2 (list i) 2 )
+    garray2
+    ))
+
+(defun get_grid_array (i)
+(with-output-to-string (str)
+  (show-board str
+	      (return_array garray i)
+	      )
+  str))
+
+Material Structure in 2D
+(get_grid_array 4)
+
+#+end_src
+
+#+RESULTS: write_new_grid
+#+begin_example
+0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 1 2 1 1 1 1 0 0 
+3 1 1 1 2 1 1 1 1 1 4 
+3 1 1 1 2 1 1 1 1 1 4 
+3 1 1 1 2 1 1 1 1 1 4 
+0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 1 2 1 1 1 1 0 0 
+#+end_example
+
+
+* export grd
+
+#+name: write_new_grff
+#+begin_src lisp  :tangle
+(defun process_grd_string (string &key (fname "moving_barrier.grd"))
+  (setf string1
+	(cl-ppcre:regex-replace-all
+	 "structure_variable"
+	 string
+	 fname))
+	 )
+
+(defun write_new_grd (infile outfile pos &key (fname  "moving_barrier.grd"))
+(setf readstring (process_grd_string (read-file infile) :fname fname))
+(write-file readstring  outfile :action-if-exists :overwrite)
+  )
 
 
 
