@@ -181,25 +181,26 @@ We write it as a org-mode table:
 	    (write_grd "moving_barrier.grd"
 		       (concatenate 'string "m" (write-to-string i) ".grd")
 		       i))
-	(range 10 :min 1 ))
+	(range 9 :min 2 ))
 
-(range 8 :min 2 )
+(range 7 :min 2 )
 #+end_src
 
 #+RESULTS: write_new_grff
-| 2 | 3 | 4 | 5 | 6 | 7 |
+| 2 | 3 | 4 | 5 | 6 |
 
 
 * build grid files
 
-#+begin_src sh :noweb yes :async :shebang #!/bin/bash  :tangle change-names.sh
+#+begin_src sh :noweb yes :async :shebang #!/bin/bash  :tangle make_grd.sh
 <<shell_directories>>
 cd "$root"
 
 grd="$root/grd/"
 [ ! -d $grd ] && mkdir $grd
 
-for f in $(ls m*.grd);do
+for f in $(ls m*.grd);
+do
     ElmerGrid 1 2 $f >> /dev/null
     ElmerGrid 1 4 $f >> /dev/null
 done
@@ -208,7 +209,66 @@ done
 #+RESULTS:
 
 
+* work on sif list
 
+
+
+
+#+name: sif_files
+#+begin_src lisp  :tangle
+
+(setf mesh_files (mapcar #'(lambda (i) (concatenate 'string "m" (write-to-string i))) (range 9 :min 2 )))
+(setf mesh_files (mapcar #'(lambda (i) (concatenate 'string "m" (write-to-string i)))
+			 (concatenate 'list (range 9 :min 2 ) (reverse (range 8 :min 3 )))
+			 ))
+
+
+(defun fpor1 (i)
+  (+ 5 (* i i 0.05))
+  )
+
+(setf porosity_values
+      (mapcar #'(lambda (i) (mapcar #'(lambda (j) (list (fpor1 i) j)) mesh_files))  (range 20 :min 00 )))
+
+(setf (cdr (last mesh_files)) mesh_files)
+
+(mapcar #'(lambda (i j) (list i (fpor1 i) j))  (range 30 :min 00 ) mesh_files)
+
+;mesh_files
+
+#+end_src
+
+#+RESULTS: sif_files
+|  0 |       5.0 | m2 |
+|  1 |      5.05 | m3 |
+|  2 |       5.2 | m4 |
+|  3 |      5.45 | m5 |
+|  4 |       5.8 | m6 |
+|  5 |      6.25 | m7 |
+|  6 |       6.8 | m8 |
+|  7 |      7.45 | m7 |
+|  8 |       8.2 | m6 |
+|  9 |      9.05 | m5 |
+| 10 |      10.0 | m4 |
+| 11 |     11.05 | m3 |
+| 12 | 12.200001 | m2 |
+| 13 |     13.45 | m3 |
+| 14 |      14.8 | m4 |
+| 15 |     16.25 | m5 |
+| 16 |      17.8 | m6 |
+| 17 |     19.45 | m7 |
+| 18 |      21.2 | m8 |
+| 19 | 23.050001 | m7 |
+| 20 |      25.0 | m6 |
+| 21 | 27.050001 | m5 |
+| 22 |      29.2 | m4 |
+| 23 |     31.45 | m3 |
+| 24 | 33.800003 | m2 |
+| 25 |     36.25 | m3 |
+| 26 |      38.8 | m4 |
+| 27 |     41.45 | m5 |
+| 28 |      44.2 | m6 |
+| 29 |     47.05 | m7 |
 
 
 * Export files
@@ -219,7 +279,7 @@ Each file has different porosity
 
 #+name: write_new_sif
 #+begin_src lisp  :tangle
-(defun process_string (string &key (fname "fsi1.sif") (porosity "1.0e4 1.0e4"))
+(defun process_string (string &key (grd_directory "m1") (fname "moving_barrier.sif") (porosity "1.0e4 1.0e4"))
   (setf string1
 	(cl-ppcre:regex-replace-all
 	 "post_file_variable"
@@ -230,7 +290,12 @@ Each file has different porosity
 	 "porosity_variable"
 	 string1
 	 porosity))
-  string2
+  (setf string3
+	(cl-ppcre:regex-replace-all
+	 "grd_directory"
+	 string2
+	 grd_directory))
+  string3
   )
 
 (defun write_new_sif (infile outfile
@@ -278,7 +343,7 @@ Each file has different porosity
 #+end_src
 
 #+RESULTS: write_new_sif
-: WRITE-SIF-FILES-TO-FOLDER
+| 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 
 
 * Call them
