@@ -33,7 +33,7 @@
 : RANGE
 
 
-* COMMENT working with grid
+* working with grid
 
 The grid has the following structure:
 
@@ -56,21 +56,23 @@ End
 We write it as a org-mode table:
 
 
-#+tblname:grid_table0
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 3 | 1 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 1 | 4 |
-| 3 | 1 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 1 | 4 |
-| 3 | 1 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 1 | 4 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | #1 | #2 | #3 | #4 | #5 | 1 | 0 | 0 |
+** source table
+#+tblname: g0
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 3 | 1 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 1 | 4 |
+| 3 | 1 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 1 | 4 |
+| 3 | 1 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 1 | 4 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
+#+TBLFM: @1$1=0
 
 #+name: write_new_grid
-#+header: :var g=grid_table0
+#+header: :var g=g0
 #+begin_src lisp :tangle
 (ql:quickload :alexandria)
 
@@ -120,23 +122,23 @@ We write it as a org-mode table:
   str))
 
 
-(get_grid_array 4)
+(get_grid_array 3)
 
 #+end_src
 
 #+RESULTS: write_new_grid
 #+begin_example
-0 0 1 1 2 1 1 1 1 0 0 
-0 0 1 1 2 1 1 1 1 0 0 
-0 0 1 1 2 1 1 1 1 0 0 
-0 0 1 1 2 1 1 1 1 0 0 
-3 1 1 1 2 1 1 1 1 1 4 
-3 1 1 1 2 1 1 1 1 1 4 
-3 1 1 1 2 1 1 1 1 1 4 
-0 0 1 1 2 1 1 1 1 0 0 
-0 0 1 1 2 1 1 1 1 0 0 
-0 0 1 1 2 1 1 1 1 0 0 
-0 0 1 1 2 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
+3 1 1 2 1 1 1 1 1 1 4 
+3 1 1 2 1 1 1 1 1 1 4 
+3 1 1 2 1 1 1 1 1 1 4 
+0 0 1 2 1 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
+0 0 1 2 1 1 1 1 1 0 0 
 #+end_example
 
 
@@ -155,8 +157,9 @@ We write it as a org-mode table:
 (defun replace_grd_string (string pos)
   (cl-ppcre:regex-replace-all
    "structure_variable"
+   string
    (get_grid_array pos)
-   string)
+   )
   )
 
 (defun write_grd (infile outfile pos)
@@ -166,8 +169,19 @@ We write it as a org-mode table:
   )
 
 
+(mapcar #'(lambda (i) 
+	    (write_grd "moving_barrier.grd"
+		       (concatenate 'string "m" (write-to-string i) ".grd")
+		       i))
+	(range 10 :min 1 ))
 
+(range 8 :min 2 )
 #+end_src
+
+#+RESULTS: write_new_grff
+| 2 | 3 | 4 | 5 | 6 | 7 |
+
+
 
 
 * Export files
