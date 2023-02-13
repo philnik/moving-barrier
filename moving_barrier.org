@@ -12,8 +12,9 @@ root=/home/me/CAE/moving_barrier/
 * Basic functions
 
 #+name: basic_functions
-#+begin_src lisp :tangle fluidized_bed.lisp
+#+begin_src lisp :tangle
 (ql:quickload "cl-ppcre")
+(ql:quickload "alexandria")
 
 (defun read-file (infile)
   (with-open-file (instream infile :direction :input :if-does-not-exist nil)
@@ -82,8 +83,6 @@ We write it as a org-mode table:
 #+name: write_new_grid
 #+header: :var g=g0
 #+begin_src lisp :tangle
-(ql:quickload :alexandria)
-
 (defun show-board (output board)
   (loop for i below (car (array-dimensions board)) do
         (loop for j below (cadr (array-dimensions board)) do
@@ -153,7 +152,7 @@ We write it as a org-mode table:
 * export grd
 
 #+name: write_new_grff
-#+begin_src lisp  :tangle
+#+begin_src lisp :tangle
 
 (defun get_grid_array (i)
 (with-output-to-string (str)
@@ -216,10 +215,18 @@ done
 
 #+name: sif_files
 #+begin_src lisp  :tangle
+(setf mesh_files
+      (mapcar #'(lambda (i) (concatenate 'string
+					 "m"
+					 (write-to-string i)))
+	      (range 9 :min 2 )))
 
-(setf mesh_files (mapcar #'(lambda (i) (concatenate 'string "m" (write-to-string i))) (range 9 :min 2 )))
-(setf mesh_files (mapcar #'(lambda (i) (concatenate 'string "m" (write-to-string i)))
-			 (concatenate 'list (range 9 :min 2 ) (reverse (range 8 :min 3 )))
+(setf mesh_files (mapcar #'(lambda (i) (concatenate 'string
+					"m"
+					(write-to-string i)))
+			 (concatenate 'list
+				      (range 9 :min 2 )
+				      (reverse (range 8 :min 3 )))
 			 ))
 
 
@@ -228,47 +235,41 @@ done
   )
 
 (setf porosity_values
-      (mapcar #'(lambda (i) (mapcar #'(lambda (j) (list (fpor1 i) j)) mesh_files))  (range 20 :min 00 )))
+      (mapcar #'(lambda (i) (mapcar #'(lambda (j) (list (fpor1
+ i) j)) mesh_files))  (range 20 :min 00 )))
 
 (setf (cdr (last mesh_files)) mesh_files)
 
-(mapcar #'(lambda (i j) (list i (fpor1 i) j))  (range 30 :min 00 ) mesh_files)
+(defun sif_variable_list (max min)
+  (mapcar #'(lambda (i j) (list
+			   (concatenate 'string
+					"mb"
+					(format nil "~4,'0D" i)
+					".vtu"
+					)
+			   (fpor1 i)
+			   j
+			   ))
+	  (range max :min min) mesh_files)
+  )
+
+(sif_variable_list 10 0)
 
 ;mesh_files
 
 #+end_src
 
 #+RESULTS: sif_files
-|  0 |       5.0 | m2 |
-|  1 |      5.05 | m3 |
-|  2 |       5.2 | m4 |
-|  3 |      5.45 | m5 |
-|  4 |       5.8 | m6 |
-|  5 |      6.25 | m7 |
-|  6 |       6.8 | m8 |
-|  7 |      7.45 | m7 |
-|  8 |       8.2 | m6 |
-|  9 |      9.05 | m5 |
-| 10 |      10.0 | m4 |
-| 11 |     11.05 | m3 |
-| 12 | 12.200001 | m2 |
-| 13 |     13.45 | m3 |
-| 14 |      14.8 | m4 |
-| 15 |     16.25 | m5 |
-| 16 |      17.8 | m6 |
-| 17 |     19.45 | m7 |
-| 18 |      21.2 | m8 |
-| 19 | 23.050001 | m7 |
-| 20 |      25.0 | m6 |
-| 21 | 27.050001 | m5 |
-| 22 |      29.2 | m4 |
-| 23 |     31.45 | m3 |
-| 24 | 33.800003 | m2 |
-| 25 |     36.25 | m3 |
-| 26 |      38.8 | m4 |
-| 27 |     41.45 | m5 |
-| 28 |      44.2 | m6 |
-| 29 |     47.05 | m7 |
+| mb0000.vtu |  5.0 | m2 |
+| mb0001.vtu | 5.05 | m3 |
+| mb0002.vtu |  5.2 | m4 |
+| mb0003.vtu | 5.45 | m5 |
+| mb0004.vtu |  5.8 | m6 |
+| mb0005.vtu | 6.25 | m7 |
+| mb0006.vtu |  6.8 | m8 |
+| mb0007.vtu | 7.45 | m7 |
+| mb0008.vtu |  8.2 | m6 |
+| mb0009.vtu | 9.05 | m5 |
 
 
 * Export files
@@ -309,6 +310,8 @@ Each file has different porosity
 		    ))
   (write-file readstring  outfile :action-if-exists :overwrite)
   )
+
+(sif_variable_list 10 0)
 
 (defun write-sif-files-to-folder (fname infile sif-folder values fpor)
   (loop for i in values
