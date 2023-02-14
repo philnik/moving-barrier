@@ -1,0 +1,202 @@
+
+* run the code
+
+
+* Files - directories
+
+#+name: shell_directories
+#+begin_src shell :async :noweb yes
+root=/home/me/CAE/moving_barrier/
+#+end_src
+
+
+* initialize
+
+#+begin_src shell :async :shebang #!/bin/bash  :tangle initialize.sh :noweb yes
+<<shell_directories>>
+cd "$root"
+
+[ ! -d "$root/sif" ] &&  mkdir $root/sif/
+
+grd="$root/grd/"
+[ ! -d $grd ] && mkdir $grd
+
+for f in $(ls m*.grd);
+do
+    ElmerGrid 1 2 $f >> /dev/null
+    ElmerGrid 1 4 $f >> /dev/null
+done
+
+for f in m[0-9]*.grd;do cp -r ${f%.grd} ./sif/;done
+
+#+end_src
+
+#+RESULTS:
+
+
+
+** One process each time
+
+
+
+#+name: one-sif-file
+#+begin_src shell :shebang #!/bin/zsh :async :noweb yes :tangle run-sif-files1.sh
+<<shell_directories>>
+cd "$root/sif/"
+for f in $(ls *.sif);do
+    ElmerSolver $f 
+    rm $f
+done
+#+end_src
+
+
+** More sif files each time
+
+#+name: two-sif-files 
+#+begin_src shell :shebang #!/bin/zsh :noweb yes :async :tangle run-sif-files2.sh
+<<shell_directories>>
+cd "$root/sif/"
+for i j k l
+ in $(ls *.sif);
+do
+    echo $i:$j
+    ElmerSolver $i &
+    ElmerSolver $j &
+    ElmerSolver $k &
+    ElmerSolver $l  
+    rm $i 
+    rm $j
+    rm $k
+    rm $l
+    echo "*****"
+done
+#+end_src
+
+when the first ends, we have to wait for the last to end, otherwise does not move on the loop
+
+It can not be stopped, with ctrl-c
+
+#+RESULTS:
+
+
+* rename results
+
+Elmer outputs: *t_0001.vtu result file for timestep 1.
+Each timestep corresponds to different porosity, so the t_0001.vtu has to be removed.
+
+
+#+begin_src sh :noweb yes :async :shebang #!/bin/bash  :tangle change-names.sh
+<<shell_directories>>
+cd "$root/sif/resu/"
+
+for f in $(ls *.vtu);do
+	 out=$(echo $f | sed -e 's/_t0001.vtu/\.vtu/g')
+	 mv $f  ./delme/$out
+done
+#+end_src
+
+
+
+* check out if it saves time on restart position
+
+
+ I also rename the post file to keep it from overwriting the previous results.
+
+ #+begin_example
+Simulation
+Max Output Level = 5
+Coordinate System = Cartesian
+Coordinate Mapping(3) = 1 2 3
+Simulation Type = Scanning
+Steady State Max Iterations = 10
+Timestep intervals = 10
+Timestep Sizes = .1
+Output Intervals = 1
+Timestepping Method = BDF
+BDF Order = 1
+Solver Input File = case.sif
+! Post File = case.vtu
+Post File = restartcase.vtu
+
+!! Restart
+!! Output File = run.result
+Binary Output = True
+Restart File = run.result
+Restart Position = 2
+Restart Time = .2
+End
+#+end_example
+
+
+* work with uiop
+
+#+begin_src lisp
+(ql:quickload "uiop")
+(ql:quickload "cl-ppcre")
+
+(uiop:chdir #P"/hb/CAE/PorousPipe00/p1/sif/resu/delme")
+
+
+(defun parse_filename_string (i)
+  (if (and i (or (pathnamep i) (stringp i)))
+      (setf val (cl-ppcre:scan-to-strings
+		  "[0-9].[0-9][0-9][0-9]" (namestring i)))
+      )
+  (if (integerp val)
+      val
+	)
+  val
+    )
+
+(defun  my-list ()
+(mapcar #'(lambda (i)
+	    (progn 
+	      (setf p (parse_filename_string i))
+	      (if p 
+		  (list i (parse-integer p)))
+		  ))
+	(uiop:directory-files (uiop:getcwd) "*.vtu")
+	)
+)
+
+
+(defun not-exported-sif-file ()
+(setf mm (mapcar #'(lambda (i) (cadr i)) (my-list)))
+
+(defun maximum (list)
+  (reduce #'max list))
+
+(loop for i in (range 0 (maximum mm))
+      if (not (member i mm))
+	collect i
+      )
+)
+
+(defun export-not-exported ()
+(write-sif-files-to-folder "fluidized_bed"
+			   infile
+			   SIF-FOLDER
+			   (not-exported-sif-file)
+))
+
+;(export-not-exported)
+(not-exported-sif-file)
+
+#+end_src
+
+#+RESULTS:
+| 23 | 24 | 25 | 39 | 40 | 219 | 220 | 499 | 500 | 737 | 738 | 739 | 741 | 742 | 743 |
+
+
+
+
+* convert animation to video
+
+#+begin_src sh :async :shebang #!/bin/bash  :tangle to_video.sh
+ffmpeg -framerate 10 -pattern_type glob -i '*.png' -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
+#+end_src
+
+
+#+begin_src sh :async :shebang #!/bin/bash  :tangle kill_elmer.sh
+ ps -ax | grep ElmerSolver | awk '{print $1}' | xargs -L1 kill -9
+#+end_src
