@@ -22,19 +22,18 @@
   (when (<= min max)
     (cons min (range (+ min step) max step))))
 
-(setf g (quote ((0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (3 1 1 1 2 3 4 5 1 1 4) (3 1 1 1 2 3 4 5 1 1 4) (3 1 1 1 2 3 4 5 1 1 4) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0))))
-  
+(let ((g (quote ((0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (3 1 1 1 2 3 4 5 1 1 4) (3 1 1 1 2 3 4 5 1 1 4) (3 1 1 1 2 3 4 5 1 1 4) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0)))))
 (defun show-board (output board)
   (loop for i below (car (array-dimensions board)) do
-    (loop for j below (cadr (array-dimensions board)) do
-      (let ((cell (aref board i j)))
-	(format output "~a " cell)))
-    (format output "~%")))
-  
+        (loop for j below (cadr (array-dimensions board)) do
+          (let ((cell (aref board i j)))
+            (format output "~a " cell)))
+        (format output "~%")))
+
 (defun list-to-2d-array (list)
   (make-array (list (length list)
-		    (length (first list)))
-	      :initial-contents list))
+                    (length (first list)))
+              :initial-contents list))
 
 (defun 2d-array-to-list (array)
   (loop for i below (array-dimension array 0)
@@ -63,15 +62,15 @@
     ))
 
 (defun get_grid_array (i)
-  (with-output-to-string (str)
-    (show-board str
+(with-output-to-string (str)
+  (show-board str
 	      (return_array garray i)
 	      )
   str))
 
 
 (get_grid_array 3)
-
+)
 
 (defun get_grid_array (i)
 (with-output-to-string (str)
@@ -121,10 +120,15 @@
 
   (mapcar #'(lambda (i j) (list
 			   (concatenate 'string
+					"moving_barrier_"
+					(format nil "~4,'0D" i)
+					".sif")
+			   
+			   (concatenate 'string
 					"mb"
 					(format nil "~4,'0D" i)
-					".vtu"
-					)
+					".vtu")
+
 			   (fpor1 i)
 			   j
 			   ))
@@ -132,6 +136,7 @@
   )
 
 
+(sif_variable_list 10 0)
 
 ;mesh_files
 
@@ -154,57 +159,24 @@
   string3
   )
 
-(mapcar #'(lambda (i) (process_string
-		       (read-file "moving_barrier.sif")
-		       :fname (format nil "~a" (car i))
-		       :porosity (format nil "~f ~f" (cadr i) (cadr i))
-		       :grd_directory (format nil "~a" (caddr i))
-		       ))
-	(sif_variable_list 10 0)
-	)
 
-(defun write_new_sif (infile outfile
-		      &key (fname  "f10.sif")
-			(porosity "0.5e04 0.5e04")
-			)
-  (setf readstring (process_string
-		    (read-file infile)
-		    :fname fname
-		    :porosity porosity
-		    ))
-  (write-file readstring  outfile :action-if-exists :overwrite)
+(defun output_sif_files (max min)
+  (mapcar #'(lambda (i)
+	      (write-file 
+	       (process_string
+		(read-file "moving_barrier.sif")
+		:fname (format nil "~a" (cadr i))
+		:porosity (format nil "~f ~f" (caddr i) (caddr i))
+		:grd_directory (format nil "~a" (cadddr i))
+		)
+	       (concatenate 'string "./sif/" (car i))
+	       :action-if-exists :overwrite))
+	  (sif_variable_list max min)
+	  )
   )
 
 
-(defun write-sif-files-to-folder (fname infile sif-folder values fpor)
-  (loop for i in values
-	 do (let ((fname
-		    (concatenate 'string
-				 fname
-				 "_t"
-				 (format nil "~5,'0D" i)
-				 ".vtu"
-				 ))
-		  (outfile
-		    (concatenate 'string
-				 sif-folder
-				 fname
-				 (format nil "~5,'0D" i)
-				 ".sif"
-				 ))
-		  (porosity
-		    (concatenate 'string
-				 (let ((npor (fpor i)))
-				   (format nil "~5,2F ~5,2F" npor npor)
-				   )))
-		  )
-	      (write_new_sif
-	       infile
-	       outfile
-	       :fname fname
-	       :porosity porosity )
-	      ))
-)
+(output_sif_files 1000 0)
 
 (setf infile (concatenate 'string *ROOT* "moving_barrier.sif"))
 
