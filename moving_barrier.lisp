@@ -1,10 +1,3 @@
-
-
-
-* Basic functions
-
-#+name: basic_functions
-#+begin_src lisp :tangle yes
 (ql:quickload "cl-ppcre")
 (ql:quickload "alexandria")
 
@@ -28,64 +21,20 @@
 (defun range (min max &optional (step 1))
   (when (<= min max)
     (cons min (range (+ min step) max step))))
-#+end_src
 
-#+RESULTS: basic_functions
-: RANGE
-
-
-* working with grid
-
-The grid has the following structure:
-
-#+begin_example
-Material Structure in 2D
-0  0 1 #1 #2 #3 #4 #5 1 0 0 
-0  0 1 #1 #2 #3 #4 #5 1 0 0
-0  0 1 #1 #2 #3 #4 #5 1 0 0
-0  0 1 #1 #2 #3 #4 #5 1 0 0
-3  1 1 #1 #2 #3 #4 #5 1 1 4   
-3  1 1 #1 #2 #3 #4 #5 1 1 4
-3  1 1 #1 #2 #3 #4 #5 1 1 4
-0  0 1 #1 #2 #3 #4 #5 1 0 0
-0  0 1 #1 #2 #3 #4 #5 1 0 0   
-0  0 1 #1 #2 #3 #4 #5 1 0 0
-0  0 1 #1 #2 #3 #4 #5 1 0 0 
-End
-#+end_example
-
-We write it as a org-mode table:
-
-
-** source table
-#+tblname: g0
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 3 | 1 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 1 | 4 |
-| 3 | 1 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 1 | 4 |
-| 3 | 1 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 1 | 4 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-| 0 | 0 | 1 | 1 | 2 | 3 | 4 | 5 | 1 | 0 | 0 |
-#+TBLFM: @1$1=0
-
-#+name: write_new_grid
-#+header: :var g=g0
-#+begin_src lisp :tangle yes
+(setf g (quote ((0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (3 1 1 1 2 3 4 5 1 1 4) (3 1 1 1 2 3 4 5 1 1 4) (3 1 1 1 2 3 4 5 1 1 4) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0) (0 0 1 1 2 3 4 5 1 0 0))))
+  
 (defun show-board (output board)
   (loop for i below (car (array-dimensions board)) do
-        (loop for j below (cadr (array-dimensions board)) do
-          (let ((cell (aref board i j)))
-            (format output "~a " cell)))
-        (format output "~%")))
-
+    (loop for j below (cadr (array-dimensions board)) do
+      (let ((cell (aref board i j)))
+	(format output "~a " cell)))
+    (format output "~%")))
+  
 (defun list-to-2d-array (list)
   (make-array (list (length list)
-                    (length (first list)))
-              :initial-contents list))
+		    (length (first list)))
+	      :initial-contents list))
 
 (defun 2d-array-to-list (array)
   (loop for i below (array-dimension array 0)
@@ -114,8 +63,8 @@ We write it as a org-mode table:
     ))
 
 (defun get_grid_array (i)
-(with-output-to-string (str)
-  (show-board str
+  (with-output-to-string (str)
+    (show-board str
 	      (return_array garray i)
 	      )
   str))
@@ -123,28 +72,6 @@ We write it as a org-mode table:
 
 (get_grid_array 3)
 
-#+end_src
-
-#+RESULTS: write_new_grid
-#+begin_example
-0 0 1 2 1 1 1 1 1 0 0 
-0 0 1 2 1 1 1 1 1 0 0 
-0 0 1 2 1 1 1 1 1 0 0 
-0 0 1 2 1 1 1 1 1 0 0 
-3 1 1 2 1 1 1 1 1 1 4 
-3 1 1 2 1 1 1 1 1 1 4 
-3 1 1 2 1 1 1 1 1 1 4 
-0 0 1 2 1 1 1 1 1 0 0 
-0 0 1 2 1 1 1 1 1 0 0 
-0 0 1 2 1 1 1 1 1 0 0 
-0 0 1 2 1 1 1 1 1 0 0 
-#+end_example
-
-
-* export grd
-
-#+name: write_new_grff
-#+begin_src lisp :tangle yes
 
 (defun get_grid_array (i)
 (with-output-to-string (str)
@@ -175,18 +102,7 @@ We write it as a org-mode table:
 	(range 9 :min 2 ))
 
 (range 7 :min 2 )
-#+end_src
 
-#+RESULTS: write_new_grff
-| 2 | 3 | 4 | 5 | 6 |
-
-
-
-* work on sif list
-
-
-#+name: sif_files
-#+begin_src lisp  :tangle yes
 (defun sif_variable_list (max min)
   (setf mesh_files (mapcar #'(lambda (i) (concatenate 'string
 						      "m"
@@ -205,15 +121,10 @@ We write it as a org-mode table:
 
   (mapcar #'(lambda (i j) (list
 			   (concatenate 'string
-					"moving_barrier_"
-					(format nil "~4,'0D" i)
-					".sif")
-			   
-			   (concatenate 'string
 					"mb"
 					(format nil "~4,'0D" i)
-					".vtu")
-
+					".vtu"
+					)
 			   (fpor1 i)
 			   j
 			   ))
@@ -221,33 +132,8 @@ We write it as a org-mode table:
   )
 
 
-(sif_variable_list 10 0)
 
 ;mesh_files
-
-#+end_src
-
-#+RESULTS: sif_files
-| moving_barrier_0000.sif | mb0000.vtu |  5.0 | m2 |
-| moving_barrier_0001.sif | mb0001.vtu | 5.05 | m3 |
-| moving_barrier_0002.sif | mb0002.vtu |  5.2 | m4 |
-| moving_barrier_0003.sif | mb0003.vtu | 5.45 | m5 |
-| moving_barrier_0004.sif | mb0004.vtu |  5.8 | m6 |
-| moving_barrier_0005.sif | mb0005.vtu | 6.25 | m7 |
-| moving_barrier_0006.sif | mb0006.vtu |  6.8 | m8 |
-| moving_barrier_0007.sif | mb0007.vtu | 7.45 | m7 |
-| moving_barrier_0008.sif | mb0008.vtu |  8.2 | m6 |
-| moving_barrier_0009.sif | mb0009.vtu | 9.05 | m5 |
-
-
-* Export files
-
-
-Each file has different porosity
-
-
-#+name: write_new_sif
-#+begin_src lisp :tangle yes
 
 (defun process_string (string &key (grd_directory "m1") (fname "moving_barrier.vtu") (porosity "1.0e4 1.0e4"))
   (setf string1
@@ -268,35 +154,57 @@ Each file has different porosity
   string3
   )
 
+(mapcar #'(lambda (i) (process_string
+		       (read-file "moving_barrier.sif")
+		       :fname (format nil "~a" (car i))
+		       :porosity (format nil "~f ~f" (cadr i) (cadr i))
+		       :grd_directory (format nil "~a" (caddr i))
+		       ))
+	(sif_variable_list 10 0)
+	)
 
-(defun output_sif_files (max min)
-  (mapcar #'(lambda (i)
-	      (write-file 
-	       (process_string
-		(read-file "moving_barrier.sif")
-		:fname (format nil "~a" (cadr i))
-		:porosity (format nil "~f ~f" (caddr i) (caddr i))
-		:grd_directory (format nil "~a" (cadddr i))
-		)
-	       (concatenate 'string "./sif/" (car i))
-	       :action-if-exists :overwrite))
-	  (sif_variable_list max min)
-	  )
+(defun write_new_sif (infile outfile
+		      &key (fname  "f10.sif")
+			(porosity "0.5e04 0.5e04")
+			)
+  (setf readstring (process_string
+		    (read-file infile)
+		    :fname fname
+		    :porosity porosity
+		    ))
+  (write-file readstring  outfile :action-if-exists :overwrite)
   )
 
 
-(output_sif_files 1000 0)
-
-#+end_src
-
-#+RESULTS: write_new_sif
-| Header |
-
-
-* Call them
-
-#+name: call_them
-#+begin_src lisp :tangle yes 
+(defun write-sif-files-to-folder (fname infile sif-folder values fpor)
+  (loop for i in values
+	 do (let ((fname
+		    (concatenate 'string
+				 fname
+				 "_t"
+				 (format nil "~5,'0D" i)
+				 ".vtu"
+				 ))
+		  (outfile
+		    (concatenate 'string
+				 sif-folder
+				 fname
+				 (format nil "~5,'0D" i)
+				 ".sif"
+				 ))
+		  (porosity
+		    (concatenate 'string
+				 (let ((npor (fpor i)))
+				   (format nil "~5,2F ~5,2F" npor npor)
+				   )))
+		  )
+	      (write_new_sif
+	       infile
+	       outfile
+	       :fname fname
+	       :porosity porosity )
+	      ))
+)
 
 (setf infile (concatenate 'string *ROOT* "moving_barrier.sif"))
 
@@ -321,5 +229,3 @@ Each file has different porosity
 (mapcar #'(lambda (i)
 	    (list (fpor1 i) (fpor2 i)))
 	    (range 0 200))
-	
-#+end_src
