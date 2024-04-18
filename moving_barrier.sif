@@ -1,5 +1,5 @@
 Header
-  Mesh DB "." grd_directory
+  Mesh DB "." "moving_barrier"
   Include Path ""
   Results Directory "resu"
 End
@@ -11,7 +11,7 @@ Simulation
   Steady State Min Iterations = 1
   Output Intervals = 1
   Output File = fsi.result
-  Post File = "post_file_variable"
+  Post File = 1.vtu
   !Restart File = run.result
   !Restart Position = 1
 End
@@ -68,8 +68,8 @@ Material 2
   Density = 1
   Viscosity = 1.0e-2
   Porous Media = Logical True
-  Porous Resistivity(2) = Real porosity_variable
-! Porous Resistivity(2) = Real 1.0e4 1.0e4
+!  Porous Resistivity(2) = Real porosity_variable
+  Porous Resistivity(2) = Real 1.0e4 1.0e4
 End
 
 Boundary Condition 1

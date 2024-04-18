@@ -178,6 +178,9 @@
 
 (output_sif_files 1000 0)
 
+
+(defparameter *ROOT* "/home/me/elmer_fem/moving-barrier/")
+
 (setf infile (concatenate 'string *ROOT* "moving_barrier.sif"))
 
 (setf SIF-FOLDER (concatenate 'string *ROOT* "/sif/"))

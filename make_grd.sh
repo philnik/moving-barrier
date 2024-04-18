@@ -1,5 +1,5 @@
 #!/bin/bash
-root=/home/me/CAE/moving_barrier/
+root=/home/me/elmer_fem/moving-barrier/
 cd "$root"
 
 grd="$root/grd/"
